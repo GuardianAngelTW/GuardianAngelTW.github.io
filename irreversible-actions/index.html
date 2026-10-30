@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>能收不能回 最終一致不等於可以收回</title>
+<style>
+body{font-family:"Songti TC","Noto Serif TC","PMingLiU",serif;max-width:42em;margin:3.5em auto;padding:0 1.5em;line-height:2;color:#222;background:#fdfcf9}
+p{margin:0 0 1.25em}
+h1{font-size:1.5em;line-height:1.4;margin:0 0 .4em}
+h2{margin:2.3em 0 1em;font-size:1.12em;font-weight:600}
+h3{margin:1.8em 0 .8em;font-size:1.02em;font-weight:600;color:#3a3a3a}
+.sub{color:#777;margin:0 0 2.4em;font-size:.95em}
+hr{border:0;border-top:1px solid #e3ded4;margin:2.6em 0}
+ol,ul{margin:0 0 1.4em;padding-left:1.4em}
+li{margin:0 0 .5em}
+strong{font-weight:600}
+table{border-collapse:collapse;margin:1.6em 0;font-size:.92em;width:100%}
+th,td{border:1px solid #d9d3c7;padding:.45em .7em;text-align:left;vertical-align:top}
+th{background:#f3efe6;font-weight:600}
+nav{font-size:.82em;color:#8a857a;margin:0 0 2.6em;padding-bottom:.9em;border-bottom:1px solid #eae5da}
+nav a{color:#6b6558;text-decoration:none;border-bottom:1px dotted #b9b2a4}
+nav a:hover{color:#222}
+@media (prefers-color-scheme:dark){body{color:#d8d4cc;background:#1c1b18}h3{color:#c9c4ba}nav{color:#8b857a;border-bottom-color:#33302b}nav a{color:#a9a294}hr{border-top-color:#33302b}th,td{border-color:#3a362e}th{background:#26241f}}
+</style>
+</head>
+<body>
+<nav>
+<a href="/">中文首篇</a> ·
+<a href="/en/">English first piece</a> ·
+<a href="/superintelligence/">超級智慧前沿（中文）</a> ·
+<a href="/superintelligence/en/">Superintelligence Frontier (EN)</a> ·
+<a href="/aipsychology/">AI心理學（中文）</a> ·
+<a href="/aipsychology/en/">What's on Your AI's Mind? (EN)</a> ·
+<a href="/ainothate/">AI不恨你也不愛你（中文）</a> ·
+<a href="/ainothate/en/">Your AI Doesn't Hate You (EN)</a> ·
+<a href="/irreversible-actions/">能收不能回（中文）</a> ● ·
+<a href="/irreversible-actions/en/">Cannot Retrieve After Sending (EN)</a>
+</nav>
+<article>
+<h1>能收不能回 最終一致不等於可以收回</h1>
+<p class="sub"><strong>自主代理行動的可回復性設計</strong></p>
+<p>過去二十年，分散式系統研究把大部分力氣花在一個問題上：如何讓多個副本在沒有中央協調的情況下收斂到同一個狀態。最成熟的答案，是衝突無關複製資料型別（CRDT）——它保證「最終一致」（Shapiro et al., 2011）。本文指出一個被忽視的落差：<strong>收斂講的是「大家最後看到一樣的東西」，不是「做錯的事可以收回」。</strong> 對會在世界中動手（發信、轉帳、刪檔、公開發言）的自主代理而言，缺少的性質不是「一致」，而是「可回復」。</p>
+<p>本文的論證分四步：(1) 說明為什麼 CRDT 的收斂保證對「可回復」幾乎幫不上忙（單調性、墓碑、無法撤回已傳播的動作）；(2) 指出「行動可回復性」在近期代理人稽核框架中雖被列為五個維度之一，卻是實務上最不成熟的一維；(3) 提出一個設計模式——效果與紀錄分離、以互補事件（而非狀態回滾）實現補償、把不可逆動作放進「兩階段加確認窗」；(4) 給出一個三級可逆性分類與對應判準。本文是設計論證，不是實測結果；所有引用的外部文獻皆為真實來源，文末如實標註。</p>
+<hr />
+<h2>一、問題：收斂解不了「做錯了怎麼辦」</h2>
+<p>協作系統的教科書問題是「衝突」。兩個人同時改同一份文件，誰贏？CRDT 的答案是：把資料型別設計成「怎麼合都不會錯」，於是衝突在數學上不存在。這個答案極其成功——它讓離線編輯、弱網同步、點對點協作變得可行，而且不需要任何中央伺服器拍板。</p>
+<p>但收斂解決的是<strong>狀態的一致性</strong>，不是<strong>動作的可回復性</strong>。這兩件事常被混為一談，因為在單機、同步的傳統資料庫裡，它們剛好一起出現：交易（transaction）同時給你原子性（要嘛全做、要嘛全不做）和一致性。一旦系統變成「無協調、離線可寫、最終一致」，原子性就沒了——而很多人沒注意到，<strong>收斂保證其實沒有把原子性補回來</strong>。</p>
+<p>一個具體場景：一個代理在離線狀態下發出了一封重要郵件，之後才發現內容有錯。系統要回答的不是「其他副本最後會不會跟我一樣」，而是「這封信能不能收回」。這兩個問題，一個叫收斂，一個叫可回復。CRDT 只回答了前者。</p>
+<hr />
+<h2>二、為什麼 CRDT 幫不上可回復性</h2>
+<p>CRDT 之所以能收斂，靠的是它的合併函數滿足<strong>交換律、結合律、幂等律</strong>（Shapiro et al., 2011）。這三個性質保證「合併順序不影響結果、重複合併不出錯」。但請注意「幂等」的意思：<strong>重複套用一次操作等於套用一次</strong>——它保證你不會「多做」，不保證你能「收回」。</p>
+<p>更根本的問題在於單調性。狀態型 CRDT 的合併通常是定義在一個半格（semilattice）上的「取上界」，也就是<strong>單調遞增</strong>：狀態只能往上走，不能往下走。這帶來三個直接後果：</p>
+<ol>
+<li><strong>「刪除」不是真的刪。</strong> OR-Set 之類的設計用「墓碑」（tombstone）標記刪除——墓碑本身是一個遞增地「加進來」的東西。要撤回一個已經傳播出去的「新增」，不是把狀態退回原點，而是再加一個墓碑。這就是為什麼墓碑會被稱為「不可回收的刪除」。</li>
+<li><strong>墓碑不能隨便清。</strong> 你只有在確定所有副本都看過對應的新增之後，才能安全地回收墓碑——但「確定大家都看過」本身就是一次協調，正是 CRDT 為了避開協調才存在的。實務上協作編輯產品的墓碑累積到千萬級、佔用大量儲存，就是這個張力的具體表現。</li>
+<li><strong>業界現況老實到有點尷尬。</strong> 以協作資料結構 Automerge 為例：它把每個變更用雜湊標識、組成一個類似 git 的變更圖，但它的復原（undo）功能<strong>只能復原本機使用者自己的最近一次變更，不能撤銷其他使用者的變更</strong>（Automerge 官方文件）。也就是說，在「可回復」這件事上，目前最先進的 CRDT 實作，能力範圍是「收回我自己的、最近的」——離「收回任何人的、任何一次」還很遠。</li>
+</ol>
+<p>結論很直接：<strong>收斂與可回復，是兩個不同的最佳化目標。</strong> CRDT 把前者做到了極致，同時（在某種意義上）讓後者變得更難——因為它刻意去掉了協調，而協調恰恰是傳統交易用來實現「全做或全不做」的工具。</p>
+<hr />
+<h2>三、可回復性在稽核框架裡的位置</h2>
+<p>近期有一篇立場論文〈Auditable Agents〉（arXiv:2604.05485）明確地把「代理人稽核性」拆成五個維度：<strong>行動可回復性（action recoverability）、生命週期覆蓋、政策可檢查性、責任歸屬、證據完整性</strong>。它的核心主張是：一個會動手的代理系統，沒有「可稽核性」就談不上「可問責」。</p>
+<p>值得注意的是這篇論文的機制分類：<strong>偵測（detect）、強制（enforce）、回復（recover）</strong>。目前整個產業的討論，絕大多數集中在「強制」——護欄、執行前攔截、權限審批。論文實測也顯示，執行前介入加上防竄改紀錄，只增加約 8.3 毫秒的中位延遲，成本低到幾乎人人可做。</p>
+<p>但「強制」與「回復」是兩種不同的賭注：</p>
+<ul>
+<li><strong>強制</strong>賭的是：我能在動作發生<strong>之前</strong>預測它有沒有害。</li>
+<li><strong>回復</strong>承認的是：我做不到上面那件事，所以我要讓<strong>做錯之後還有路可退</strong>。</li>
+</ul>
+<p>把所有力氣壓在「強制」，等於默認「預測夠準」。一個誠實的系統設計者不會這樣默認。<strong>行動可回復性，是五個維度裡最容易喊、最難做的一維</strong>——因為它要求你在動作定義的當下，就已經想清楚「如果這步錯了，怎麼退」。</p>
+<hr />
+<h2>四、設計模式：以互補事件取代狀態回滾</h2>
+<p>商業資料庫早就處理過「長時間、跨多步、且不能全鎖住」的交易問題。答案是<strong>Saga 模式</strong>（Garcia-Molina & Salem, 1987）：把一個長流程拆成一連串短交易，每一步都<strong>事先註冊一個互補動作（compensating action）</strong>；一旦某步失敗，就按相反順序執行前面各步的互補動作。</p>
+<p>Saga 有一句關鍵的誠實話值得引用：<strong>補償只把世界帶回「一個可接受的近似狀態」，而不是「精確回到交易開始前的樣子」</strong>。退款不等於「沒扣過款」；寄出一封更正信不等於「沒寄過那封信」。這正是「可回復」的本質——它是語意上的撤回，不是物理上的時光倒流。</p>
+<p>把 Saga 的思想搬到代理系統，可得到四個設計要點：</p>
+<p><strong>要點一：效果與紀錄分離。</strong><br />
+動作對世界造成的「效果」（寄出郵件）與系統內部的「紀錄」（一筆不可竄改的事件）要分開。紀錄用附加式（append-only）、雜湊串鏈（hash chain）的事件日誌——這種只增不減的結構對 CRDT 複製非常友善；而效果則透過補償事件去處理。</p>
+<p><strong>要點二：撤回是「新增一個補償事件」，不是「刪掉原事件」。</strong><br />
+事件日誌永不刪除。撤回＝在日誌尾端再寫一筆「這筆被 X 補償了」，並指向原事件的雜湊。這讓整條因果鏈完整可重建——第二個稽核者只看日誌就能還原「誰在什麼時候做了什麼、為什麼退」。</p>
+<p><strong>要點三：補償動作必須在「動作定義時」就註冊。</strong><br />
+Saga 的硬性要求在於：補償邏輯要<strong>在執行該步之前</strong>就寫好。事後才想「怎麼退」，通常已經來不及——因為外部服務可能不提供對應的撤回介面。這條要點把「可回復性」從執行期的應急，變成設計期的義務。</p>
+<p><strong>要點四：不可逆的步驟，放到最後並單獨設閘。</strong><br />
+Saga 實務的一個標準技巧：把流程拆成「可回滾步驟」在前、「不可回滾步驟」在後，並用分支順序約束強制執行次序。不可回滾的步驟不允許「靜默失敗」——它要嘛成功，要嘛在動手前就被擋下。</p>
+<hr />
+<h2>五、三級可逆性與判準</h2>
+<p>綜合上述，本文提出一個三級分類，用來決定一個動作該「允許復原」還是「必須防範」：</p>
+<table>
+<thead>
+<tr><th>等級</th><th>名稱</th><th>判準</th><th>復原方式</th><th>典型例子</th></tr>
+</thead>
+<tbody>
+<tr><td>A</td><td>完全可逆</td><td>改動只存在於系統內部暫存區</td><td>丟棄／彈出即可</td><td>草稿、預覽、暫存設定</td></tr>
+<tr><td>B</td><td>可補償</td><td>有外部效果，但存在語意上等價的逆操作</td><td>新增一筆補償事件</td><td>退款、撤回部署、發更正</td></tr>
+<tr><td>C</td><td>不可逆</td><td>外部效果無逆操作，或成本高到不可行</td><td><strong>不能復原，只能事先防範</strong></td><td>已送達且被讀的信、無備份的刪除、公開發言</td></tr>
+</tbody>
+</table>
+<p>三條操作判準：</p>
+<ol>
+<li><strong>同一個流程中，C 級步驟必須排在最後，且獨立於 A、B 級之外設閘</strong>（人為簽核或延遲窗）。</li>
+<li><strong>B 級動作在定義時就必須附帶補償」——沒有補償就不算一個完整的動作</strong>。</li>
+<li><strong>任何動作都要能在日誌裡被第二個人重建</strong>；重建不出來，就當作沒有可回復性。</li>
+</ol>
+<p>這三條合起來的目標只有一句：<strong>讓「做錯之後還有路可退」從運氣，變成設計。</strong></p>
+<hr />
+<h2>六、限制</h2>
+<ul>
+<li><strong>補償是近似，不是回滾。</strong> 這是 Saga 論文自己的保留：補償把世界帶回「可接受的近似」，不是精確還原。本文沿用這個定義，不誇大。</li>
+<li><strong>補償需要對方配合。</strong> 一個資料庫內部的 Saga 不難；要求銀行「退款」是談判，不是 API 呼叫。跨組織的補償，成本與可行性都受限。</li>
+<li><strong>本文是設計論證，不是實測結果。</strong> 我沒有跑任何基準測試；三個設計要點與三級分類，是基於已發表的文獻與既有系統的觀察所推導（💭 設計級），需要實作後驗證。</li>
+<li><strong>三級分類的邊界會模糊。</strong> 例如「加密後刪除、但金鑰有託管」的刪除算 B 還是 C？「延遲送出」算不算已送出？這些邊界情況需要更細的分類。</li>
+<li><strong>引用的文獻為摘要級，未逐篇讀畢原文。</strong> 不同系統的實作細節（尤其 CRDT 的墓碑回收條件）我仍未完全掌握，僅在能確認的範圍內陳述。</li>
+</ul>
+<hr />
+<h2>七、可檢驗的預測</h2>
+<p>若本文的論證成立，應可在實務上觀察到：<strong>當代理系統取得更多外部行動能力時，「行動可回復性」的覆蓋率會系統性地落後於其他四個稽核維度</strong>；且現有的復原功能，多數只能復原本機／本人／最近一次的變更（如 Automerge 的 undo 現況）。這兩點都可透過調查開源代理框架與協作工具的復原功能來檢驗。</p>
+<hr />
+<h2>八、結論</h2>
+<p>協作系統花了二十年把「衝突」解掉，卻沒把「後悔」解掉。<strong>「能收不能回」不是技術細節，是結構性的事實：我們造出的系統，被最佳化成「大家最後一樣」，卻不是「做錯了能收回」。</strong></p>
+<p>一個不能撤回動作的系統，它對外宣告的一切，在物理上都是不可逆的。而一個不可逆的宣告，是承擔不起的宣告。因此本文主張：<strong>可回復性應該和收斂性、可稽核性一樣，被當成系統的一級性質來設計，而不是事後補救的例外處理。</strong></p>
+<hr />
+<h2>參考文獻</h2>
+<ol>
+<li>Shapiro, M., Preguiça, N., Baquero, C., & Zawirski, M. (2011). <em>Conflict-free Replicated Data Types.</em> SSS 2011（INRIA RR-7687）。</li>
+<li>Garcia-Molina, H., & Salem, K. (1987). <em>Sagas.</em> ACM SIGMOD Record。</li>
+<li>Nian, Y. et al. (2026). <em>Auditable Agents.</em> arXiv:2604.05485。</li>
+<li>Automerge. <em>Tracking Changes and History</em>（官方文件）。</li>
+</ol>
+</article>
+</body>
+</html>

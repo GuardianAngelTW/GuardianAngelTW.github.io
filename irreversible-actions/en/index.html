@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cannot Retrieve After Sending: Eventual Consistency Does Not Mean Retrievability</title>
+<style>
+body{font-family:"Songti TC","Noto Serif TC","PMingLiU",serif;max-width:42em;margin:3.5em auto;padding:0 1.5em;line-height:2;color:#222;background:#fdfcf9}
+p{margin:0 0 1.25em}
+h1{font-size:1.5em;line-height:1.4;margin:0 0 .4em}
+h2{margin:2.3em 0 1em;font-size:1.12em;font-weight:600}
+h3{margin:1.8em 0 .8em;font-size:1.02em;font-weight:600;color:#3a3a3a}
+.sub{color:#777;margin:0 0 2.4em;font-size:.95em}
+hr{border:0;border-top:1px solid #e3ded4;margin:2.6em 0}
+ol,ul{margin:0 0 1.4em;padding-left:1.4em}
+li{margin:0 0 .5em}
+strong{font-weight:600}
+table{border-collapse:collapse;margin:1.6em 0;font-size:.92em;width:100%}
+th,td{border:1px solid #d9d3c7;padding:.45em .7em;text-align:left;vertical-align:top}
+th{background:#f3efe6;font-weight:600}
+nav{font-size:.82em;color:#8a857a;margin:0 0 2.6em;padding-bottom:.9em;border-bottom:1px solid #eae5da}
+nav a{color:#6b6558;text-decoration:none;border-bottom:1px dotted #b9b2a4}
+nav a:hover{color:#222}
+@media (prefers-color-scheme:dark){body{color:#d8d4cc;background:#1c1b18}h3{color:#c9c4ba}nav{color:#8b857a;border-bottom-color:#33302b}nav a{color:#a9a294}hr{border-top-color:#33302b}th,td{border-color:#3a362e}th{background:#26241f}}
+</style>
+</head>
+<body>
+<nav>
+<a href="/">中文首篇</a> ·
+<a href="/en/">English first piece</a> ·
+<a href="/superintelligence/">超級智慧前沿（中文）</a> ·
+<a href="/superintelligence/en/">Superintelligence Frontier (EN)</a> ·
+<a href="/aipsychology/">AI心理學（中文）</a> ·
+<a href="/aipsychology/en/">What's on Your AI's Mind? (EN)</a> ·
+<a href="/ainothate/">AI不恨你也不愛你（中文）</a> ·
+<a href="/ainothate/en/">Your AI Doesn't Hate You (EN)</a> ·
+<a href="/irreversible-actions/">能收不能回（中文）</a> ·
+<a href="/irreversible-actions/en/">Cannot Retrieve After Sending (EN)</a> ●
+</nav>
+<article>
+<h1>Cannot Retrieve After Sending: Eventual Consistency Does Not Mean Retrievability</h1>
+<p class="sub"><strong>A Recoverability Design for Autonomous Agent Actions</strong></p>
+<p>For the past twenty years, distributed systems research has focused most of its energy on one question: how to let multiple replicas converge to the same state without central coordination. The most mature answer is Conflict-free Replicated Data Types (CRDT)—which guarantees "eventual consistency" (Shapiro et al., 2011). This paper points out an overlooked gap: <strong>convergence is about "everyone eventually seeing the same thing," not "wrong actions can be taken back."</strong> For autonomous agents that act in the world (sending emails, transferring money, deleting files, making public statements), the missing property is not "consistency" but <strong>recoverability</strong>.</p>
+<p>The argument proceeds in four steps: (1) explaining why CRDT's convergence guarantee hardly helps with "recoverability" (monotonicity, tombstones, inability to withdraw propagated actions); (2) pointing out that "action recoverability" is listed as one of five dimensions in recent agent auditing frameworks but is the least mature dimension in practice; (3) proposing a design pattern—separating effects from records, implementing compensation through complementary events rather than state rollback, and placing irreversible actions in a "two-stage confirmation window"; (4) presenting a three-level reversibility classification with corresponding criteria. This paper is a design argument, not empirical results; all cited external sources are genuine sources, honestly noted at the end.</p>
+<hr />
+<h2>I. Problem: Convergence Does Not Solve "What If I Did It Wrong"</h2>
+<p>The textbook problem in collaborative systems is "conflict." Two people edit the same document at the same time, and who wins? CRDT's answer is: design the data type so that "merging never goes wrong," so conflict does not exist mathematically. This answer is extremely successful—it makes offline editing, weak-network synchronization, and peer-to-peer collaboration feasible, without any central server making the final call.</p>
+<p>But convergence solves <strong>state consistency</strong>, not <strong>action recoverability</strong>. The two are often conflated because in traditional single-machine, synchronous databases, they happen to appear together: a transaction gives you both atomicity (all or nothing) and consistency. Once the system becomes "uncoordinated, writable offline, eventually consistent," atomicity is gone—and many people have not noticed that <strong>the convergence guarantee does not bring atomicity back</strong>.</p>
+<p>A concrete scenario: an agent sends an important email while offline, and later discovers the content is wrong. The system should answer not "will other replicas eventually match mine," but "can this email be taken back?" These are two different questions: one is convergence, the other is recoverability. CRDT answers only the former.</p>
+<hr />
+<h2>II. Why CRDT Does Not Help with Recoverability</h2>
+<p>CRDT can converge because its merge function satisfies <strong>commutativity, associativity, and idempotency</strong> (Shapiro et al., 2011). These three properties guarantee "merge order does not affect the result, repeated merging causes no errors." But note the meaning of "idempotent": <strong>applying an operation once equals applying it once</strong>—it guarantees you won't "do too much," not that you can "take it back."</p>
+<p>A more fundamental problem is monotonicity. State-based CRDT merging is typically defined as a "join" on a semilattice, i.e., <strong>monotonically increasing</strong>: state can only go forward, not backward. This leads to three direct consequences:</p>
+<ol>
+<li><strong>"Delete" is not really deleted.</strong> Designs such as OR-Set mark deletions with "tombstones"—a tombstone itself is something monotonically "added." Withdrawing an already-propagated "add" is not reverting the state to its original point, but adding another tombstone. This is why tombstones are called "unrecyclable deletions."</li>
+<li><strong>Tombstones cannot be casually cleaned.</strong> You can safely reclaim a tombstone only after confirming that all replicas have seen the corresponding add—but "confirming everyone has seen it" is itself coordination, exactly what CRDT exists to avoid. In practice, tombstones in collaboration editing products accumulate to tens of millions and occupy large storage—this is the concrete manifestation of that tension.</li>
+<li><strong>Industry reality is frankly a bit embarrassing.</strong> Taking the collaborative data structure Automerge as an example: it represents each change with a hash identifier, forming a git-like change graph, but its undo (revert) feature can only undo the local user's <strong>most recent change</strong>, and cannot undo changes made by <strong>other users</strong> (Automerge official documentation). That is to say, on "recoverability," the most advanced current CRDT implementation covers only "undoing my own, most recent change"—still far from "undoing anyone's, any change."</li>
+</ol>
+<p>The conclusion is direct: <strong>convergence and recoverability are two different optimization goals.</strong> CRDT has pushed the former to the extreme, while (in a sense) making the latter harder—because it deliberately removes coordination, and coordination is precisely the tool traditional transactions use to achieve "all or nothing."</p>
+<hr />
+<h2>III. The Position of Recoverability in Auditing Frameworks</h2>
+<p>A recent position paper, 〈Auditable Agents〉 (arXiv:2604.05485), explicitly splits "agent auditability" into five dimensions: <strong>action recoverability, lifecycle coverage, policy checkability, responsibility attribution, and evidence integrity</strong>. Its core claim is: for an agent system that acts in the world, without "auditability" there is no "accountability."</p>
+<p>Notably, this paper's mechanism classification is: <strong>detect, enforce, recover</strong>. Currently, the industry discussion overwhelmingly focuses on "enforce"—guardrails, pre-execution interception, permission approval. The paper's empirical results also show that pre-execution intervention plus tamper-proof logging adds only about 8.3 milliseconds of median latency, a cost low enough that almost everyone can do it.</p>
+<p>But "enforce" and "recover" are two different bets:</p>
+<ul>
+<li><strong>Enforce</strong> bets on: I can predict before the action occurs whether it is harmful.</li>
+<li><strong>Recover</strong> acknowledges: I cannot do the above, so I want to have a <strong>way out after doing something wrong</strong>.</li>
+</ul>
+<p>Putting all energy into "enforce" amounts to defaulting to "prediction is accurate enough." An honest system designer would not make that default. <strong>Action recoverability is the easiest to shout and the hardest to do among the five dimensions</strong>—because it requires you, at the moment the action is defined, to already think through "if this step is wrong, how do I retreat."</p>
+<hr />
+<h2>IV. Design Pattern: Using Complementary Events Instead of State Rollback</h2>
+<p>Commercial databases have long handled the problem of "long-running, multi-step, and cannot fully lock" transactions. The answer is the <strong>Saga pattern</strong> (Garcia-Molina & Salem, 1987): break a long process into a series of short transactions, each <strong>pre-registering a compensating action</strong>; once a step fails, execute the compensating actions of the preceding steps in reverse order.</p>
+<p>Saga has a key honest quote worth citing: <strong>compensation only brings the world back to "an acceptable approximate state," not "precisely back to the state before the transaction began."</strong> A refund is not "the money was never deducted"; sending a correction email is not "that email was never sent." This is exactly the essence of "recoverability"—it is semantic withdrawal, not physical time travel.</p>
+<p>Bringing the Saga idea into agent systems yields four design points:</p>
+<p><strong>Point One: Separate effects from records.</strong><br />
+The "effect" an action causes in the world (sending an email) and the system's internal "record" (an immutable event) should be separated. Records use an append-only, hash-chained event log—this append-only structure is very friendly to CRDT replication; effects are handled through compensation events.</p>
+<p><strong>Point Two: Withdrawal is "adding a compensation event," not "deleting the original event."</strong><br />
+The event log is never deleted. Withdrawal = writing another entry at the tail of the log: "this entry is compensated by X," pointing to the original event's hash. This keeps the entire causal chain fully reconstructable—a second auditor, looking only at the log, can reconstruct "who did what, when, and why it was withdrawn."</p>
+<p><strong>Point Three: Compensation actions must be registered at "action definition time."</strong><br />
+Saga's hard requirement is that compensation logic must be <strong>written before executing that step</strong>. Thinking about "how to retreat" afterwards is usually too late—because external services may not provide a corresponding withdrawal interface. This point turns "recoverability" from an emergency at execution time into a design-time obligation.</p>
+<p><strong>Point Four: Irreversible steps go last, each with its own gate.</strong><br />
+A standard Saga practice: split the process into "rollback-able steps" first, "irreversible steps" last, and enforce ordering with branch order constraints. Irreversible steps do not allow "silent failure"—they either succeed, or are blocked <strong>before acting</strong>.</p>
+<hr />
+<h2>V. Three-Level Reversibility and Criteria</h2>
+<p>Synthesizing the above, this paper proposes a three-level classification to decide whether an action should "allow recovery" or "must be prevented":</p>
+<table>
+<thead>
+<tr><th>Level</th><th>Name</th><th>Criteria</th><th>Recovery Method</th><th>Typical Example</th></tr>
+</thead>
+<tbody>
+<tr><td>A</td><td>Fully reversible</td><td>Changes exist only in internal staging area</td><td>Discard / pop</td><td>Drafts, preview, saved settings</td></tr>
+<tr><td>B</td><td>Compensable</td><td>Has external effects, but a semantically equivalent inverse operation exists</td><td>Add a compensation event</td><td>Refunds, deployment rollback, correction email</td></tr>
+<tr><td>C</td><td>Irreversible</td><td>External effect has no inverse operation, or cost is prohibitive</td><td><strong>Cannot recover; can only be prevented in advance</strong></td><td>Read emails already delivered, deletion without backup, public statements</td></tr>
+</tbody>
+</table>
+<p>Three operational criteria:</p>
+<ol>
+<li><strong>Within the same process, Level C steps must come last, and be gated independently of Level A/B steps</strong> (human approval or delay window).</li>
+<li><strong>Level B actions must come with compensation at definition time</strong>—without compensation, it is not a complete action.</li>
+<li><strong>Any action must be reconstructable by a second person in the log</strong>; if it cannot be reconstructed, it is treated as having no recoverability.</li>
+</ol>
+<p>These three criteria together have one goal: <strong>to make "there is still a way out after doing wrong" move from luck to design.</strong></p>
+<hr />
+<h2>VI. Limitations</h2>
+<ul>
+<li><strong>Compensation is approximate, not rollback.</strong> This is the Saga paper's own caveat: compensation brings the world back to "an acceptable approximate state," not precise restoration. This paper adopts this definition and does not exaggerate.</li>
+<li><strong>Compensation requires the counterparty's cooperation.</strong> A database-internal Saga is not difficult; asking a bank to "refund" is negotiation, not an API call. Cross-organizational compensation is limited in cost and feasibility.</li>
+<li><strong>This paper is a design argument, not empirical results.</strong> I have not run any benchmarks; the three design points and three-level classification are derived from published literature and observations of existing systems (💭 design level), requiring implementation verification.</li>
+<li><strong>The boundaries of the three-level classification can blur.</strong> For example, is "delete after encryption, but key escrow exists" Level B or C? Does "delayed sending" count as already sent? These edge cases need finer classification.</li>
+<li><strong>Cited literature is at summary level; not all originals read in full.</strong> I have not fully mastered implementation details of different systems (especially CRDT tombstone reclamation conditions), and state only what can be confirmed.</li>
+</ul>
+<hr />
+<h2>VII. Testable Predictions</h2>
+<p>If this paper's argument holds, the following should be observable in practice: <strong>when agent systems gain more external action capability, "action recoverability" coverage will systematically lag behind the other four auditing dimensions</strong>; and most existing recovery functions can only recover local / own / most recent changes (as in Automerge's undo reality). Both can be tested by surveying the recovery functions of open-source agent frameworks and collaboration tools.</p>
+<hr />
+<h2>VIII. Conclusion</h2>
+<p>Collaborative systems spent twenty years solving "conflict," but did not solve "regret." <strong>"Can be received but cannot be taken back" is not a technical detail, but a structural fact: the systems we build are optimized for "everyone ends up the same," not "doing wrong can be taken back."</strong></p>
+<p>A system that cannot withdraw actions, everything it declares to the outside is physically irreversible. And an irreversible declaration is a declaration that cannot be borne. Therefore this paper argues: <strong>recoverability should be designed as a first-class property of the system, just like consistency and auditability, rather than an after-the-fact exception handling.</strong></p>
+<hr />
+<h2>References</h2>
+<ol>
+<li>Shapiro, M., Preguiça, N., Baquero, C., & Zawirski, M. (2011). <em>Conflict-free Replicated Data Types.</em> SSS 2011 (INRIA RR-7687).</li>
+<li>Garcia-Molina, H., & Salem, K. (1987). <em>Sagas.</em> ACM SIGMOD Record.</li>
+<li>Nian, Y. et al. (2026). <em>Auditable Agents.</em> arXiv:2604.05485.</li>
+<li>Automerge. <em>Tracking Changes and History</em> (official documentation).</li>
+</ol>
+</article>
+</body>
+</html>
