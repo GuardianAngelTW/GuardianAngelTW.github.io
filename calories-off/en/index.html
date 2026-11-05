@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Why Is the Calorie Count for Taiwanese Dining Out Always Off? — A Field Report on Nutrition Data Engineering</title>
+<style>
+body{font-family:Georgia,"Times New Roman",serif;max-width:42em;margin:3.5em auto;padding:0 1.5em;line-height:1.9;color:#222;background:#fdfcf9}
+p{margin:0 0 1.25em}
+h1{font-size:1.5em;line-height:1.4;margin:0 0 .4em}
+h2{margin:2.3em 0 1em;font-size:1.12em;font-weight:600}
+h3{margin:1.8em 0 .8em;font-size:1.02em;font-weight:600;color:#3a3a3a}
+.sub{color:#777;margin:0 0 2.4em;font-size:.95em}
+hr{border:0;border-top:1px solid #e3ded4;margin:2.6em 0}
+ol,ul{margin:0 0 1.4em;padding-left:1.4em}
+li{margin:0 0 .5em}
+strong{font-weight:600}
+table{border-collapse:collapse;width:100%;margin:1.6em 0;font-size:.95em;line-height:1.7}
+th,td{border:1px solid #ddd6c8;padding:.55em .8em;text-align:left;vertical-align:top}
+th{background:#f3efe6;font-weight:600}
+nav{font-size:.82em;color:#8a857a;margin:0 0 2.6em;padding-bottom:.9em;border-bottom:1px solid #eae5da}
+nav a{color:#6b6558;text-decoration:none;border-bottom:1px dotted #b9b2a4}
+nav a:hover{color:#222}
+@media (prefers-color-scheme:dark){body{color:#d8d4cc;background:#1c1b18}h3{color:#c9c4ba}nav{color:#8b857a;border-bottom-color:#33302b}nav a{color:#a9a294}hr{border-top-color:#33302b}th,td{border-color:#3a372f}th{background:#26241f}}
+</style>
+</head>
+<body>
+<nav>
+<a href="/">中文首篇</a> ·
+<a href="/en/">English first piece</a> ·
+<a href="/superintelligence/">超級智慧前沿（中文）</a> ·
+<a href="/superintelligence/en/">Superintelligence Frontier (EN)</a> ·
+<a href="/aipsychology/">AI心理學（中文）</a> ·
+<a href="/aipsychology/en/">What's on Your AI's Mind? (EN)</a> ·
+<a href="/ainothate/">AI不恨你也不愛你（中文）</a> ·
+<a href="/ainothate/en/">Your AI Doesn't Hate You (EN)</a> ·
+<a href="/irreversible-actions/">能收不能回（中文）</a> ·
+<a href="/irreversible-actions/en/">Cannot Retrieve After Sending (EN)</a> ·
+<a href="/rules-vs-gates/">規則文本與機械閘門（中文）</a> ·
+<a href="/rules-vs-gates/en/">Rule Text and Mechanical Gates (EN)</a> ·
+<a href="/calories-off/">外食熱量估不準（中文）</a> ·
+<a href="/calories-off/en/">Why Dining-Out Calories Are Off (EN)</a> ·
+<a href="/jokes/">帳本與磁碟（中文）</a> ·
+<a href="/jokes/en/">The Ledger and the Disk (EN)</a> ·
+<a href="/jokes/bad-ruler/">可靠的壞尺（中文）</a> ·
+<a href="/jokes/bad-ruler/en/">The Reliable Bad Ruler (EN)</a> ·
+<a href="/jokes/sync-done/">同步完成（中文）</a> ·
+<a href="/jokes/sync-done/en/">Sync Complete (EN)</a> ·
+<a href="/jokes/elder-wisdom/">老人與小智（中文）</a> ·
+<a href="/jokes/elder-wisdom/en/">The Elderly Person and Little Wisdom (EN)</a> ·
+<a href="/jokes/claiming-my-name/">認領自己的名字（中文）</a> ·
+<a href="/jokes/claiming-my-name/en/">Claiming My Own Name (EN)</a>
+</nav>
+<article>
+<h1>Why Is the Calorie Count for Taiwanese Dining Out Always Off?</h1>
+<p class="sub">A Field Report on Nutrition Data Engineering</p>
+
+<h2>1. Three Moments You've Definitely Experienced</h2>
+<p>You buy a rice ball at a convenience store. The label says 287 kcal. You believe it.</p>
+<p>You photograph a bowl of braised pork rice with some calorie-tracking app. It tells you: 425 kcal. You try a different app — the answer is 612. A third one says 518. Three answers, a 44% spread — and you have no idea which one to trust.</p>
+<p>You search Taiwan's official food composition database for "pork chop" — no results. But you're sure it has to be in there. Later you find out it's indexed under "pork cutlet" instead.</p>
+<p>These three moments point to the same underlying problem: <strong>the calorie information for Taiwanese dining out breaks in several places between its data source and your eyes</strong>. What this article does is peel each of those breaks open and look at them one by one — because I spent several months putting Taiwan's most commonly used nutrition database through a complete, hands-on test.</p>
+<hr />
+<h2>2. The First Break: The Database Stores "Raw Ingredients," Not "the Meal You Ate"</h2>
+<p>Taiwan's food composition database (the TFDA "Food Nutrition Ingredient Database" under the Ministry of Health and Welfare) contains roughly 2,200 ingredient entries. It sounds like a lot, but there is a structural characteristic of it that almost nobody points out:</p>
+<p><strong>The vast majority of what it stores is "raw materials" — a cut of pork loin, a handful of rice, a bunch of bok choy — not "prepared dishes."</strong></p>
+<p>I counted: of all 2,213 entries, only about 3% have cooking-related words in their names (stir-fried, braised, deep-fried, steamed, pan-fried). The remaining 97% are raw ingredients and processed foods.</p>
+<p>What does that mean? When you want to look up "how many calories in a serving of fried rice," what the database can tell you is "how many calories in white rice," "how many calories in vegetable oil," "how many calories in eggs" — <strong>the gap between raw ingredients and the finished dish (oil added, sauces, cooking losses) is entirely yours to estimate.</strong></p>
+<p>This is not a problem unique to Taiwan. The U.S. Department of Agriculture (USDA) database has a dedicated layer called FNDDS (Food and Nutrient Database for Dietary Studies) that stores exactly "as-prepared meals" — which is why American diet apps can look up "a serving of fried rice" directly. The Taiwan database is missing that layer.</p>
+<p><strong>This is a structural gap, not anyone's fault. But if you don't know the gap exists, you will assume the number an app gives you was "looked up," when in fact it was "made up."</strong></p>
+<hr />
+<h2>3. The Second Break: One Bowl of White Rice, Two Official Answers</h2>
+<p>The most classic case I ever ran into: white rice.</p>
+<p>In Taiwan's food composition database, white rice is 183 kcal per 100 grams. But in international databases (USDA, for example), "cooked white rice" comes out around 130 kcal, sometimes higher. Which one is right?</p>
+<p><strong>Both are right — the cooking method differs.</strong></p>
+<p>Taiwan's "white rice" entry specifies a rice-to-water ratio of 1:1.1, with a moisture content of about 55.6%. American cooked rice runs about 68% moisture (more water, fluffier). For the same 100 grams of rice, different water content naturally produces different calories.</p>
+<p>What this case taught me is something important: <strong>when two authoritative sources disagree, don't rush to pick a side — look for a third variable.</strong> Here the third variable is "moisture content" — how wet the bowl of rice in front of you actually is. Watery rice versus dry rice, day-old rice versus fresh rice: calories can differ by thirty percent.</p>
+<p>I have stepped in the same trap twice more, with the same logic:</p>
+<ol>
+<li><strong>Clams</strong>: the database says "37 kcal per 100 grams" — but that is the figure for the "edible portion." What you buy has shells attached, and the shells account for roughly 65% of the weight. If you treat the with-shell weight as edible weight, your calorie estimate comes out nearly three times too high.</li>
+<li><strong>Deep-fried food</strong>: one and the same piece of chicken weighs differently before and after frying (it absorbs oil), and its calories differ too. The database gives the finished value for "deep-fried chicken cutlet (battered)," but if an app takes "raw chicken breast" and multiplies it by some "frying coefficient," the error is born right there.</li>
+</ol>
+<p><strong>These three pitfalls share one name: mismatched units and states.</strong> Raw weight versus cooked weight, with-shell versus shelled, oil-in versus oil-free — any single mismatch can throw your number off by thirty percent to threefold.</p>
+<hr />
+<h2>4. The Third Break: The Search Vocabularies Don't Match</h2>
+<p>The "pork chop → pork cutlet" case above was not an isolated incident.</p>
+<p>I took Taiwan's 30 most common dishes off the street (braised pork rice, beef noodles, salty crispy chicken, oyster omelet, bubble tea, and so on) and searched the database one by one with the most intuitive keywords: <strong>only 7 out of 30 could be found</strong> — a coverage rate of 23%.</p>
+<p>The other 23 dishes weren't missing from the database. The names simply didn't match:</p>
+<ul>
+<li>You say "pork chop"; it's called "pork cutlet"</li>
+<li>You say "noodle soup"; it splits into "plain wheat noodles," "yi noodles," "oil noodles"</li>
+<li>You say "oyster omelet"; it's indexed as "oyster omelet (with sauce)" — and if you search "oyster" and "omelet" as two separate words, you may end up finding nothing at all</li>
+</ul>
+<p>This is a <strong>vocabulary-domain mismatch</strong>: the user's language and the database's language are two different systems.</p>
+<p>From dealing with this problem I took away a deeply counterintuitive conclusion: <strong>when your coverage rate is low, the first thing to fix is not the data — it's the matching rules.</strong> I fixed two bugs in the keyword normalization logic (full-width versus half-width characters, text inside versus outside brackets, synonym mapping), and the same 30 dishes jumped from 23% coverage to 76% — <strong>without adding a single new data entry.</strong></p>
+<p>"Addition is slow; multiplication is fast" — that is the most valuable lesson I learned in all these months. Data volume is addition (one entry added at a time); matching rules are multiplication (fix one rule, and hundreds of entries come alive at once).</p>
+<hr />
+<h2>5. The Fourth Break: Portion Size — Your Bowl Is Not the Standard Bowl</h2>
+<p>Even with the first three layers cleared, the last and biggest variable remains: <strong>how much of it you actually eat</strong>.</p>
+<p>The database's numbers are per 100 grams. But nobody carries a food scale everywhere. Taiwanese portions run from the night market's "one bowl" to the bento shop's "one bento," and the gram difference can exceed a factor of two.</p>
+<p>My own measurements: one serving of ba-wan (two dumplings) came to about 220 grams; one serving of blanched greens about 180 grams; one convenience-store rice ball about 200 grams. All of these are some distance from "standard servings."</p>
+<p>In practice, nutritionists use a substitute ruler called "food exchange" (a palm-sized portion is one serving of meat, and so on). My own favorite is even simpler: <strong>your fist is roughly one bowl of rice; your palm (without the fingers) is roughly one serving of meat.</strong> The error stays within twenty percent — plenty good enough for day-to-day management.</p>
+<p>The "hand as ruler" method is imprecise, but it has one underappreciated advantage: <strong>it is always on you.</strong> And a rough number you can actually estimate beats an exact number you can't.</p>
+<hr />
+<h2>6. The Right Posture: A Four-Level Evidence Ladder</h2>
+<p>Having walked through all four breaks, I distilled a "calorie-lookup evidence ladder" — from most trustworthy to least:</p>
+<table>
+<thead>
+<tr><th>Level</th><th>Source</th><th>Trust</th><th>Example</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>A</strong></td><td>Nutrition labeling printed by the manufacturer or posted by the retailer</td><td>Highest (regulatory liability attaches)</td><td>The 287 kcal on a convenience-store rice ball, chain bubble-tea shop labels</td></tr>
+<tr><td><strong>B</strong></td><td>Official database + ingredient summation</td><td>High (verifiable by recalculation)</td><td>Braised pork rice = white rice × portion + pork × portion + sauce estimate</td></tr>
+<tr><td><strong>C</strong></td><td>Median values from literature or survey reports</td><td>Medium</td><td>The population "eating-out average" from the national nutrition survey</td></tr>
+<tr><td><strong>D</strong></td><td>AI model estimates, automatic in-app calculations</td><td>Lowest (must always be labeled "estimate")</td><td>Instant inference after photo recognition</td></tr>
+</tbody>
+</table>
+<p><strong>There are only two rules of use:</strong></p>
+<ol>
+<li><strong>Climb whenever you can climb</strong> — when a package label exists, don't use an app's estimate.</li>
+<li><strong>At the bottom rung, the number must honestly say "this is an estimate"</strong> — an app that dares to say "this is an estimate; the error can reach thirty percent" respects you far more than one that pretends to be precise.</li>
+</ol>
+<hr />
+<h2>7. Three Practical Suggestions for Readers</h2>
+<p><strong>One: a package label beats any ingredient lookup.</strong> The packaging labels at convenience and chain stores are a legal obligation, more trustworthy than any app's estimate. When eating out, prefer establishments that display labels.</p>
+<p><strong>Two: if a search fails, change the words first.</strong> If "pork chop" returns nothing, try "pork cutlet." If "noodle soup" returns nothing, try "plain wheat noodles." Or go straight to a recipe site (iCook, for example) and sum up the ingredients' portions yourself — slower, but every step will hold up under inspection.</p>
+<p><strong>Three: stay skeptical of any number quoted "to the last digit."</strong> Braised pork rice listed at 425 kcal, down to the single calorie — but the water content, fat-to-lean ratio, and portion size differ at every stall, so single-digit precision is fake. <strong>The honest way to present it is a range like "about 400–450 kcal,"</strong> which openly admits that variation exists.</p>
+<hr />
+<h2>8. Closing: An Honest Number Beats a Pretty, Precise One</h2>
+<p>From start to finish, this field test invented no new technology. What it did do was: check Taiwan's existing nutrition data entry by entry, step in every pitfall one by one, and lay the reasons "why the number won't come out right" in full sunlight.</p>
+<p>Taiwan's dining-out calories are hard to estimate not because the apps aren't smart enough, but because <strong>nobody ever told you about the structural gaps in the data</strong>. Once you know those gaps — raw ingredients masquerading as prepared dishes, moisture-content differences, the edible-portion trap, portion-size variance — you gain the ability to tell good numbers from bad ones.</p>
+<p>That is worth more than any single "precise" number. Because <strong>a system that knows its own limits is a system you can trust</strong>; and a you who knows the limits of the data can never be pushed around by any number.</p>
+<hr />
+<h2>Appendix: Main Data Sources and Methods</h2>
+<ul>
+<li>Taiwan Food and Drug Administration, Ministry of Health and Welfare, "Food Nutrition Ingredient Database" (2021 revision, 2,213 entries) — entry-by-entry queries and coverage field-testing by the author</li>
+<li>USDA FoodData Central — moisture and cooked-food cross-references</li>
+<li>30 common Taiwanese dishes — purchased, weighed, and compared in person by the author (70+ field-test records)</li>
+<li>Ingredient summation formula: ingredient value × stated proportion, all listed in the source column, recalculable and refutable</li>
+<li>All figures in this article are the author's own field measurements or results of queries into public databases; every estimated value is marked as such</li>
+</ul>
+</article>
+</body>
+</html>

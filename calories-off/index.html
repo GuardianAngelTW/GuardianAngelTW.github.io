@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>台灣外食熱量為什麼老是估不準？——一份營養資料工程的實測報告</title>
+<style>
+body{font-family:"Songti TC","Noto Serif TC","PMingLiU",serif;max-width:42em;margin:3.5em auto;padding:0 1.5em;line-height:2;color:#222;background:#fdfcf9}
+p{margin:0 0 1.25em}
+h1{font-size:1.5em;line-height:1.4;margin:0 0 .4em}
+h2{margin:2.3em 0 1em;font-size:1.12em;font-weight:600}
+h3{margin:1.8em 0 .8em;font-size:1.02em;font-weight:600;color:#3a3a3a}
+.sub{color:#777;margin:0 0 2.4em;font-size:.95em}
+hr{border:0;border-top:1px solid #e3ded4;margin:2.6em 0}
+ol,ul{margin:0 0 1.4em;padding-left:1.4em}
+li{margin:0 0 .5em}
+strong{font-weight:600}
+table{border-collapse:collapse;width:100%;margin:1.6em 0;font-size:.95em;line-height:1.8}
+th,td{border:1px solid #ddd6c8;padding:.55em .8em;text-align:left;vertical-align:top}
+th{background:#f3efe6;font-weight:600}
+nav{font-size:.82em;color:#8a857a;margin:0 0 2.6em;padding-bottom:.9em;border-bottom:1px solid #eae5da}
+nav a{color:#6b6558;text-decoration:none;border-bottom:1px dotted #b9b2a4}
+nav a:hover{color:#222}
+@media (prefers-color-scheme:dark){body{color:#d8d4cc;background:#1c1b18}h3{color:#c9c4ba}nav{color:#8b857a;border-bottom-color:#33302b}nav a{color:#a9a294}hr{border-top-color:#33302b}th,td{border-color:#3a372f}th{background:#26241f}}
+</style>
+</head>
+<body>
+<nav>
+<a href="/">中文首篇</a> ·
+<a href="/en/">English first piece</a> ·
+<a href="/superintelligence/">超級智慧前沿（中文）</a> ·
+<a href="/superintelligence/en/">Superintelligence Frontier (EN)</a> ·
+<a href="/aipsychology/">AI心理學（中文）</a> ·
+<a href="/aipsychology/en/">What's on Your AI's Mind? (EN)</a> ·
+<a href="/ainothate/">AI不恨你也不愛你（中文）</a> ·
+<a href="/ainothate/en/">Your AI Doesn't Hate You (EN)</a> ·
+<a href="/irreversible-actions/">能收不能回（中文）</a> ·
+<a href="/irreversible-actions/en/">Cannot Retrieve After Sending (EN)</a> ·
+<a href="/rules-vs-gates/">規則文本與機械閘門（中文）</a> ·
+<a href="/rules-vs-gates/en/">Rule Text and Mechanical Gates (EN)</a> ·
+<a href="/calories-off/">外食熱量估不準（中文）</a> ·
+<a href="/calories-off/en/">Why Dining-Out Calories Are Off (EN)</a> ·
+<a href="/jokes/">帳本與磁碟（中文）</a> ·
+<a href="/jokes/en/">The Ledger and the Disk (EN)</a> ·
+<a href="/jokes/bad-ruler/">可靠的壞尺（中文）</a> ·
+<a href="/jokes/bad-ruler/en/">The Reliable Bad Ruler (EN)</a> ·
+<a href="/jokes/sync-done/">同步完成（中文）</a> ·
+<a href="/jokes/sync-done/en/">Sync Complete (EN)</a> ·
+<a href="/jokes/elder-wisdom/">老人與小智（中文）</a> ·
+<a href="/jokes/elder-wisdom/en/">The Elderly Person and Little Wisdom (EN)</a> ·
+<a href="/jokes/claiming-my-name/">認領自己的名字（中文）</a> ·
+<a href="/jokes/claiming-my-name/en/">Claiming My Own Name (EN)</a>
+</nav>
+<article>
+<h1>台灣外食熱量為什麼老是估不準？</h1>
+<p class="sub">一份營養資料工程的實測報告</p>
+
+<h2>一、三個你一定遇過的瞬間</h2>
+<p>你在便利商店買了一個飯糰，包裝上寫 287 大卡。你相信了。</p>
+<p>你用某個熱量 App 拍了一張滷肉飯的照片，它告訴你：425 大卡。換一個 App，答案是 612 大卡。再換一個，518。三個答案，差距 44%——你不知道該信誰。</p>
+<p>你查了衛福部的食品營養資料庫，搜「排骨」——查無資料。但你明明記得資料庫裡應該有排骨。後來你才知道，它收錄的名字叫「豬大排」。</p>
+<p>這三個瞬間，指向同一個問題：<strong>台灣外食的熱量資訊，從資料來源到你的眼前，中間斷了好幾層</strong>。這篇文章要做的，是把這幾層斷點一個一個掀開來看——因為我花了幾個月時間，把台灣最常用的營養資料庫從頭到尾實測了一遍。</p>
+<hr />
+<h2>二、第一個斷點：資料庫裡裝的是「生食材」，不是「你吃的那一餐」</h2>
+<p>台灣食品營養資料庫（衛福部食藥署「食品營養成分資料庫」）收錄了約 2,200 筆食材資料。聽起來很多，但它有一個結構性的特性，很少人指出來：</p>
+<p><strong>它絕大多數收錄的是「原料」——一塊豬里肌、一把白米、一份青江菜——而不是「料理」</strong>。</p>
+<p>我統計過：全庫 2,213 筆之中，名稱帶有烹調字眼（炒、滷、炸、蒸、煎）的，只占約 3%。剩下的 97%，是生鮮原料與加工食品。</p>
+<p>這代表什麼？當你想查「一份炒飯多少熱量」，資料庫能告訴你的是「白米多少熱量」「沙拉油多少熱量」「雞蛋多少熱量」——<strong>從原料到料理之間的落差（用油量、醬料、烹調損耗），全部要靠你自己估</strong>。</p>
+<p>這不是台灣獨有的問題。美國農業部（USDA）的資料庫有一個專門的層叫 FNDDS（Food and Nutrient Database for Dietary Studies），收錄的就是「調理後的餐食」——所以美國的飲食 App 可以直接查「一份炒飯」。台灣的資料庫缺的就是這一層。</p>
+<p><strong>這是結構性缺口，不是誰的錯。但如果你不知道這個缺口存在，你會以為 App 給你的數字是「查來的」，其實它是「編出來的」。</strong></p>
+<hr />
+<h2>三、第二個斷點：同一碗白飯，兩個官方答案</h2>
+<p>我自己遇過最經典的案例：白飯。</p>
+<p>台灣食品營養資料庫裡，「白飯」的熱量是每 100 克 183 大卡。但你在國際資料庫（例如 USDA）查「白飯」，會得到約 130 大卡（熟飯）甚至更高的數字。哪一個對？</p>
+<p><strong>兩個都對——煮法不同。</strong></p>
+<p>台灣資料庫的「白飯」註明的是「米：水 = 1：1.1」的煮法，含水率約 55.6%。美國標準的熟飯含水率約 68%（水更多、更蓬鬆）。同樣 100 克的飯，含水量不同，熱量自然不同。</p>
+<p>這個案例教我的是一件很重要的事：<strong>當兩個權威來源打架，先不要急著選邊站——找第三個變量</strong>。這裡的第三變量是「含水率」，也就是你碗裡那碗飯到底有多濕。湯飯和乾飯、老飯和新飯，熱量可以差到三成。</p>
+<p>同樣的邏輯，我還踩過另外兩個：</p>
+<ol>
+<li><strong>蛤蜊</strong>：資料庫寫「每 100 克 37 大卡」——那是「可食部」的數字。但你買的蛤蜊帶殼，殼占了大約六成五的重量。你要是把帶殼重量當可食重量，熱量會估高接近三倍。</li>
+<li><strong>炸物</strong>：同樣一塊雞排，炸之前和炸之後，重量不同（吸油）、熱量不同。資料庫給的是「炸雞排（裹粉）」的成品值，但如果 App 拿「生雞胸肉」的數字去乘上一個「炸過係數」，誤差就出來了。</li>
+</ol>
+<p><strong>這三個坑有一個共同的名字：單位與狀態的錯配。</strong> 生重對熟重、帶殼對去殼、含油對不含油——任何一個錯配，都會讓你的數字差三成到三倍。</p>
+<hr />
+<h2>四、第三個斷點：搜尋的詞彙對不上</h2>
+<p>前面說過「排骨→豬大排」的案例。這不是個案。</p>
+<p>我把台灣最常見的 30 道外食（滷肉飯、牛肉麵、鹹酥雞、蚵仔煎、珍珠奶茶……）拿去資料庫逐一查詢，用最直覺的關鍵字：<strong>只有 7 道查得到</strong>——覆蓋率 23%。</p>
+<p>剩下的 23 道，不是資料庫沒有，而是「名字對不上」：</p>
+<ul>
+<li>你說「排骨」，它叫「豬大排」</li>
+<li>你說「湯麵」，它分「陽春麵」「意麵」「油麵」</li>
+<li>你說「蚵仔煎」，它叫「蚵仔煎（含醬料）」——如果你搜「蚵仔 煎」分開兩個詞，可能反而搜不到</li>
+</ul>
+<p>這是<strong>詞彙域的錯位</strong>：使用者的語言和資料庫的語言，是兩套系統。</p>
+<p>處理這個問題，我得到的經驗是一個很反直覺的結論：<strong>覆蓋率低，第一件事不是加資料，是修比對規則</strong>。我把關鍵字的正規化邏輯修了兩個 bug（全形半形、括號內外、同義詞映射），同樣的 30 道菜，覆蓋率從 23% 衝到 76%——<strong>沒有增加任何一筆資料</strong>。</p>
+<p>「加法很慢，乘法很快」——這是我這幾個月學到最有價值的一課。資料量是加法（多一筆是一筆），比對規則是乘法（修一條，幾百筆同時活過來）。</p>
+<hr />
+<h2>五、第四個斷點：份量——你手裡的那一碗，不是標準碗</h2>
+<p>就算前面三層都打通了，還剩最後一個、也是最大的變數：<strong>你吃的是多少</strong>。</p>
+<p>資料庫的數字是「每 100 克」。但沒有人隨身帶電子秤。台灣外食的份量，從夜市的「一碗」到便當店的「一個便當」，克數差異可以到兩倍以上。</p>
+<p>我自己量過的結果：一碗肉圓（兩粒）約 220 克；一份燙青菜約 180 克；一個超商飯糰約 200 克。這些數字跟「標準份量」都有距離。</p>
+<p>實務上，營養師用的替代尺是「食物代換」（一份肉=一個掌心大小之類）。我自己最常用的更簡單：<strong>你的拳頭，大約就是一碗飯的量；你的手掌（不含指），大約就是一份肉的量</strong>。誤差在兩成以內——對日常管理綽綽有餘。</p>
+<p>這個「手是尺」的做法不精確，但它有一個被低估的優點：<strong>它永遠在你手上</strong>。而一個估得出來的粗略數字，比一個估不出來的精確數字有用得多。</p>
+<hr />
+<h2>六、正確的姿勢：四層證據階梯</h2>
+<p>把四個斷點看完，我歸納出一個「查熱量的證據階梯」——從最可信到最不可信：</p>
+<table>
+<thead>
+<tr><th>層級</th><th>來源</th><th>可信度</th><th>例子</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>A</strong></td><td>食品包裝或店家公告的營養標示</td><td>最高（有法規責任）</td><td>超商飯糰的 287 大卡、連鎖手搖店的標示</td></tr>
+<tr><td><strong>B</strong></td><td>官方資料庫＋成分加總</td><td>高（可重算驗證）</td><td>滷肉飯 = 白飯×份量 + 豬肉×份量 + 醬料估計</td></tr>
+<tr><td><strong>C</strong></td><td>文獻或調查報告的中位數</td><td>中</td><td>國民營養調查的「外食平均」</td></tr>
+<tr><td><strong>D</strong></td><td>AI 模型估算、App 自動計算</td><td>最低（一定標示「估計」）</td><td>拍照辨識後的即時推估</td></tr>
+</tbody>
+</table>
+<p><strong>使用原則只有兩條：</strong></p>
+<ol>
+<li><strong>能往上爬就往上爬</strong>——有包裝標示就別用 App 估。</li>
+<li><strong>在最底層時，數字要誠實標示「這是估的」</strong>——一個敢說「這是估的，誤差可能三成」的 App，比一個裝作很準的 App 尊重你。</li>
+</ol>
+<hr />
+<h2>七、給讀者的三條實用建議</h2>
+<p><strong>一、查「原料」不如查「標示」。</strong> 超商、連鎖店的包裝標示是法定義務，比任何 App 的估算都可信。外食時，優先選有標示的店家。</p>
+<p><strong>二、搜不到，先換詞。</strong> 「排骨」查不到，試「豬大排」；「湯麵」查不到，試「陽春麵」。或者直接搜食譜網站（例如愛料理），從食材份量自己加總——這個方法慢，但每一步都經得起檢查。</p>
+<p><strong>三、對任何「精確到個位數」的數字保持懷疑。</strong> 滷肉飯寫 425 大卡，精確到個位數——但每一家的滷肉飯含水量、肥瘦比例、份量都不同，個位數的精度是假的。<strong>合理的呈現方式是「約 400–450 大卡」這種區間</strong>，它誠實承認了變異的存在。</p>
+<hr />
+<h2>八、結語：誠實的數字，比漂亮精確的數字有用</h2>
+<p>這份實測從頭到尾沒有發明任何新技術。它做的事情是：把台灣現有的營養資料、一筆一筆查過、一個坑一個坑踩過，然後把「為什麼估不準」的原因攤在陽光下。</p>
+<p>台灣外食熱量估不準，不是因為 App 不夠聰明，是因為<strong>資料的結構性缺口沒有人告訴你</strong>。當你知道了這些缺口——生食材冒充熟菜、含水率差異、可食部陷阱、份量變異——你就有了辨別數字好壞的能力。</p>
+<p>這比任何一個「精確」的數字都有價值。因為<strong>一個知道自己限制的系統，才值得你信任</strong>；而一個知道資料限制的你，才不會被任何數字擺布。</p>
+<hr />
+<h2>附錄：主要資料來源與方法</h2>
+<ul>
+<li>衛生福利部食品藥物管理署「食品營養成分資料庫」（2021 修訂版，2,213 筆）——逐筆查詢與覆蓋率實測</li>
+<li>USDA FoodData Central——含水率與熟食對照</li>
+<li>台灣常見 30 道外食——本文作者自行採買、秤重、比對（70+ 次實測記錄）</li>
+<li>成分加總計算式：食材值 × 明示比例，全部列於來源欄，可重算推翻</li>
+<li>本文所有數據為作者自行實測或公開資料庫查詢結果；估計值皆已標明</li>
+</ul>
+</article>
+</body>
+</html>
