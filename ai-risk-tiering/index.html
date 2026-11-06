@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI 風險分級的治理設計：三軸方法、覆寫紀律與驗證的三個層次</title>
+<style>
+body{font-family:"Songti TC","Noto Serif TC","PMingLiU",serif;max-width:42em;margin:3.5em auto;padding:0 1.5em;line-height:2;color:#222;background:#fdfcf9}
+p{margin:0 0 1.25em}
+h1{font-size:1.5em;line-height:1.4;margin:0 0 .4em}
+h2{margin:2.3em 0 1em;font-size:1.12em;font-weight:600}
+h3{margin:1.8em 0 .8em;font-size:1.02em;font-weight:600;color:#3a3a3a}
+.sub{color:#777;margin:0 0 2.4em;font-size:.95em}
+hr{border:0;border-top:1px solid #e3ded4;margin:2.6em 0}
+ol,ul{margin:0 0 1.4em;padding-left:1.4em}
+li{margin:0 0 .5em}
+strong{font-weight:600}
+table{border-collapse:collapse;width:100%;margin:1.6em 0;font-size:.95em;line-height:1.8}
+th,td{border:1px solid #ddd6c8;padding:.55em .8em;text-align:left;vertical-align:top}
+th{background:#f3efe6;font-weight:600}
+nav{font-size:.82em;color:#8a857a;margin:0 0 2.6em;padding-bottom:.9em;border-bottom:1px solid #eae5da}
+nav a{color:#6b6558;text-decoration:none;border-bottom:1px dotted #b9b2a4}
+nav a:hover{color:#222}
+@media (prefers-color-scheme:dark){body{color:#d8d4cc;background:#1c1b18}h3{color:#c9c4ba}nav{color:#8b857a;border-bottom-color:#33302b}nav a{color:#a9a294}hr{border-top-color:#33302b}th,td{border-color:#3a372f}th{background:#26241f}}
+</style>
+</head>
+<body>
+<nav>
+<a href="/">中文首篇</a> ·
+<a href="/en/">English first piece</a> ·
+<a href="/superintelligence/">超級智慧前沿（中文）</a> ·
+<a href="/superintelligence/en/">Superintelligence Frontier (EN)</a> ·
+<a href="/aipsychology/">AI心理學（中文）</a> ·
+<a href="/aipsychology/en/">What's on Your AI's Mind? (EN)</a> ·
+<a href="/ainothate/">AI不恨你也不愛你（中文）</a> ·
+<a href="/ainothate/en/">Your AI Doesn't Hate You (EN)</a> ·
+<a href="/irreversible-actions/">能收不能回（中文）</a> ·
+<a href="/irreversible-actions/en/">Cannot Retrieve After Sending (EN)</a> ·
+<a href="/rules-vs-gates/">規則文本與機械閘門（中文）</a> ·
+<a href="/rules-vs-gates/en/">Rule Text and Mechanical Gates (EN)</a> ·
+<a href="/calories-off/">外食熱量估不準（中文）</a> ·
+<a href="/calories-off/en/">Why Dining-Out Calories Are Off (EN)</a> ·
+<a href="/jokes/">帳本與磁碟（中文）</a> ·
+<a href="/jokes/en/">The Ledger and the Disk (EN)</a> ·
+<a href="/jokes/bad-ruler/">可靠的壞尺（中文）</a> ·
+<a href="/jokes/bad-ruler/en/">The Reliable Bad Ruler (EN)</a> ·
+<a href="/jokes/sync-done/">同步完成（中文）</a> ·
+<a href="/jokes/sync-done/en/">Sync Complete (EN)</a> ·
+<a href="/jokes/elder-wisdom/">老人與小智（中文）</a> ·
+<a href="/jokes/elder-wisdom/en/">The Elderly Person and Little Wisdom (EN)</a> ·
+<a href="/jokes/claiming-my-name/">認領自己的名字（中文）</a> ·
+<a href="/jokes/claiming-my-name/en/">Claiming My Own Name (EN)</a> ·
+<a href="/ai-risk-tiering/">AI風險分級的治理設計（中文）</a> ·
+<a href="/ai-risk-tiering/en/">Governance Design for AI Risk-Tiering (EN)</a>
+</nav>
+<article>
+<h1>AI 風險分級的治理設計</h1>
+<p class="sub">三軸方法、覆寫紀律與驗證的三個層次</p>
+
+<h2>導言：自述合規的困境</h2>
+<p>企業導入 AI 之後，第一份要交出去的東西往往不是產品，而是一份聲明：「我們如何使用 AI」。這份聲明交給誰？客戶、往來銀行、主管機關、保險公司。問題在於：聲明的內容幾乎全部出自出具者的<strong>自述</strong>。「我們有書面規範」「我們保留使用紀錄」「我們未將機敏資料輸入 AI 服務」——每一句都是真話與假話各佔一半可能的句子。收到聲明的一方無從查證，出具的一方也未必說謊，只是<strong>自述這種文體，天生沒有驗證的接口</strong>。</p>
+<p>這篇文章不處理「如何讓自述變成查證」——那是稽核的問題，需要第三方、成本、時間。這篇文章處理一個更上游、也更便宜的問題：<strong>在自述的框架裡，如何設計出「說謊成本高、說實話成本低」的結構</strong>。方法有三：分級、覆寫、驗證。三者都有一個共同原則——<strong>把人的判斷放在系統建議之上，但要求判斷留下痕跡</strong>。</p>
+<hr />
+<h2>一、分級：以應用場景為單位，三軸就高不就低</h2>
+<p>二〇二六年十月十三日，金融監督管理委員會發布《金融業運用代理 AI 安全諮詢文件》（開放徵詢三十日）。這份文件最重要的一個設計選擇，是以「<strong>應用場景</strong>」為風險管理單位，而不是以「AI 系統」為單位。同一個模型，用來整理會議摘要與用來對外寄出正式文件，風險不同；反過來，不同模型做同一件事，風險結構可能相同。<strong>場景才是買方與監理者真正想管理的東西。</strong></p>
+<p>文件提出的分級方法為三軸：<strong>資料敏感度</strong>（AI 可取用什麼）、<strong>動作影響</strong>（AI 會做什麼）、<strong>能力邊界／可擴散性</strong>（AI 的權限能走多遠）。每軸各自評級，最終等級採「<strong>就高不就低</strong>」——任一軸到高，整體即為高。</p>
+<p>就高不就低是一個容易被低估的設計。它的效果不是「更保守」，而是<strong>消除組合的模糊地帶</strong>：如果允許「低＋低＋高＝中」，組織就有動機把單軸的評級往下談（因為可以靠其他軸拉回來）。就高不就低切斷了這條路：<strong>想讓整體降級，唯一的方法是真正把最高的那一軸降下來</strong>。這是分級制度裡少數無法被話術穿透的設計。</p>
+<hr />
+<h2>二、覆寫紀律：判斷可以凌駕系統，但要留痕</h2>
+<p>分級制度最常見的死法，是被「例外」磨穿。評級系統說高，負責人說「我們情況特殊，實際上是低」——這種判斷有時是對的（系統不知道現場有人工複核），有時是錯的（只是不想麻煩）。制度設計者的困境在於：完全禁止覆寫，系統會比人笨；完全開放覆寫，系統會比人天真。</p>
+<p>可行的設計是「<strong>覆寫須理由</strong>」：允許負責人推翻系統建議，但推翻必須附上理由，而且——這是關鍵——<strong>未附理由的覆寫不採計，採自動計算值，並以顯著提示標明「曾選擇覆寫但未填理由」</strong>。</p>
+<p>這個設計有三個性質值得展開：</p>
+<p><strong>第一，它把判斷的成本從「事後解釋」移到「事前陳述」。</strong> 沒有這個設計時，負責人可以先覆寫、事後再補理由（或者永遠不補）；有了這個設計，想覆寫的人在按下的那一刻就必須組織自己的論據。<strong>要求當下陳述，是對判斷品質最便宜的投資。</strong></p>
+<p><strong>第二，它保留了「曾經想覆寫」的紀錄。</strong> 即使覆寫未採計，系統仍記錄「曾選擇覆寫為低但未填理由，視為未覆寫」。這條紀錄在稽核時的價值超過一百句「我們流程嚴謹」——它顯示這個組織的成員<strong>確實動過推翻分級的念頭</strong>，而制度攔下了未經思考的那部分。沉默的制度不會產生這種證據。</p>
+<p><strong>第三，它讓「覆寫值與計算值相同」變成可見的。</strong> 當覆寫值恰好等於自動計算值，文件會註明「（覆寫值與計算值相同）」——這提醒覆寫者：你的判斷沒有改變結果，這次覆寫只是確認。長期累積，這類註記能顯示人工覆寫的實際邊際價值，為「何時值得人工介入」提供組織自己的數據。</p>
+<p>一套聲明工具（單檔、離線、無網路）已將此設計付諸實作並經第三方非作者實測覆核：覆寫不填理由時採自動值且提示一致，填理由時採覆寫值並列印理由——<strong>行為與提示完全一致，是這類治理工具最基本也最常被跳過的要求</strong>。</p>
+<hr />
+<h2>三、驗證的三個層次：組織最常忽略的第三層</h2>
+<p>軟體工程的老問題：「我們做對了產品嗎」（verification）與「我們做了對的產品嗎」（validation）——前者問品質，後者問價值。Boehm 在一九八〇年代就把這個區分講清楚了。但組織導入 AI 時，實際上要面對的是<strong>三層</strong>，第三層最常被忽略：</p>
+<ul>
+<li><strong>第一層，做對產品（verification）</strong>：功能是否如設計運作。測試、覆核、重跑都屬於此層。</li>
+<li><strong>第二層，做對的產品（validation）</strong>：東西是不是有人要。真實使用者、付費、回頭率屬於此層。</li>
+<li><strong>第三層，把帳做對（bookkeeping）</strong>：聲明、紀錄、覆核簽章、稽核軌跡。</li>
+</ul>
+<p>第三層的危險在於它<strong>長得最像前兩層</strong>。一份蓋了三個章的聲明，看起來像驗證過的產品；一套測試全綠的截圖，看起來像功能可靠的證明。但第三層有一個可操作的判準可以把它跟前兩層切開：<strong>這個檢驗的結果，會不會改變產品的下一個動作？</strong> 會改（改程式、改設計、改下架）——那是驗證；不會改、只會多一份文書——那是記帳。</p>
+<p>記帳不是沒有價值（追溯、問責、法遵都需要），但<strong>把記帳的工時算進「品質投入」，是組織導入 AI 時最常見的資源錯置</strong>。一個組織如果同時在做十份聲明和零次真實使用者訪談，它的「治理投入」其實是零。切開三層，資源才會流向會改變行動的那一層。</p>
+<hr />
+<h2>四、來源標記：借來的方法要貼標</h2>
+<p>分級方法很少是原創的。本文第一節的三軸來自前述諮詢文件；「覆寫須理由」的設計思路與研究界的預註冊（preregistration）實務同源——<strong>在看到結果之前先登記判準，防止事後挑選解讀</strong>。借用方法不是問題，問題在於借用的方式：</p>
+<ul>
+<li><strong>最健康的形狀</strong>：「參考＋標明」——「風險分級方法參考某文件第 X 章」，讀者知道去哪裡核對，也知道這是參考而非官方認定。</li>
+<li><strong>最危險的形狀</strong>：「藏錨」——<strong>拿掉來源、留下方法</strong>。方法還在用，但出處消失了。這比明確的錯誤引用更難被發現，因為句子本身沒有錯；錯的是讀者會把「這個方法存在於權威文件」誤讀成「這份文件認可我這樣用」。</li>
+<li><strong>中間的形狀</strong>：「貼標」——保留來源，同時聲明「原適用範圍為 A，本工具借用於 B；本產品未經該文件認定」。成本一句話，換來的是查證者的信任。</li>
+</ul>
+<p>藏錨的動機通常不是惡意，是<strong>怕麻煩</strong>：多一段來源說明，文件看起來就「不夠自足」。但買方的世界不是這樣運作的——<strong>知道來源在哪的聲明，比自足的聲明更值得信任</strong>，因為它給了對方驗證的入口。藏起來的錨，等於把「我查證過」這筆資產親手丟掉。</p>
+<hr />
+<h2>五、誠實的語言學：自述文件的四條措辭紀律</h2>
+<p>回到導言的困境：自述無法驗證，但自述可以<strong>設計得不容易被誤讀</strong>。實作中沉澱出四條措辭紀律：</p>
+<ol>
+<li><strong>「是」只代表自述</strong>。文件應明文：「『是』代表出具者自述已建立該措施，不代表已符合任何法規、標準或客戶要求。」這句話讓收到文件的人從第一眼就知道文件的效力邊界。</li>
+<li><strong>未回答不推定為符合</strong>。空白項呈現為「未回答」，並標明數量——「尚有十二項未回答（以未回答呈現，不推定為符合）」。沉默在這份文件裡保持沉默，不被翻譯成同意。</li>
+<li><strong>未勾選不等於查證為零</strong>。「本項以未勾選表示未曾輸入，不代表經查證為零」——這句話防的是另一個方向的誤讀：沒填，不表示查過沒有。</li>
+<li><strong>固定節不可編輯</strong>。效力與限制的段落應設為固定，不隨使用者輸入變動——免責的話不能由想免責的人自己改寫。</li>
+</ol>
+<p>四條的共同點：<strong>每一條都在防一種特定的誤讀，而不是防說謊</strong>。說謊防不了（自述的宿命），但誤讀可以透過措辭設計大幅收窄。治理文件的美德不是「完整」，是「難以被誤讀」。</p>
+<hr />
+<h2>結語：讓每個聲明可被挑戰，讓每個挑戰留痕</h2>
+<p>回頭看三個方法：分級（就高不就低）消除組合的模糊地帶；覆寫紀律（須理由、無理由不採計）讓判斷留痕；驗證三層的切分讓資源流向會改變行動的地方；來源標記與措辭紀律則讓整份文件難以被誤讀。</p>
+<p>它們共用的原則只有一句：<strong>治理不是把文書做滿，是讓每一個聲明都站在可以被挑戰的位置上——並且，讓每一個挑戰都留下痕跡。</strong> 一份聲明若無法被挑戰，它對收件方只是裝飾；一個挑戰若不留痕跡，它對組織只是噪音。在這兩者之間，才是自述時代可行的治理。</p>
+<hr />
+<h2>參考來源</h2>
+<ul>
+<li>金融監督管理委員會，《金融業運用代理 AI 安全諮詢文件》，2026-10-13 發布（開放徵詢三十日）。</li>
+<li>B. Boehm（1984）：《Verifying and Validating Software Requirements and Design Specifications》，verification／validation 之分。</li>
+<li>Center for Open Science：Preregistration 指引（confirmatory／exploratory 之區分；HARKing 議題初見於 Kerr, 1998）。</li>
+<li>ISO/IEC 17025:2017（結果有效性與能力驗證之一般原則）。</li>
+</ul>
+</article>
+</body>
+</html>

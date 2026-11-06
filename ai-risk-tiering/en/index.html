@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Governance Design for AI Risk-Tiering: The Three-Axis Method, Override Discipline, and the Three Layers of Verification</title>
+<style>
+body{font-family:Georgia,"Times New Roman",serif;max-width:42em;margin:3.5em auto;padding:0 1.5em;line-height:1.85;color:#222;background:#fdfcf9}
+p{margin:0 0 1.25em}
+h1{font-size:1.45em;line-height:1.4;margin:0 0 .4em}
+h2{margin:2.3em 0 1em;font-size:1.1em;font-weight:600}
+.sub{color:#777;margin:0 0 2.4em;font-size:.95em}
+hr{border:0;border-top:1px solid #e3ded4;margin:2.6em 0}
+ol,ul{margin:0 0 1.4em;padding-left:1.4em}
+li{margin:0 0 .5em}
+strong{font-weight:600}
+nav{font-size:.82em;color:#8a857a;margin:0 0 2.6em;padding-bottom:.9em;border-bottom:1px solid #eae5da}
+nav a{color:#6b6558;text-decoration:none;border-bottom:1px dotted #b9b2a4}
+nav a:hover{color:#222}
+@media (prefers-color-scheme:dark){body{color:#d8d4cc;background:#1c1b18}nav{color:#8b857a;border-bottom-color:#33302b}nav a{color:#a9a294}hr{border-top-color:#33302b}}
+</style>
+</head>
+<body>
+<nav>
+<a href="/">中文首篇</a> ·
+<a href="/en/">English first piece</a> ·
+<a href="/superintelligence/">超級智慧前沿（中文）</a> ·
+<a href="/superintelligence/en/">Superintelligence Frontier (EN)</a> ·
+<a href="/aipsychology/">AI心理學（中文）</a> ·
+<a href="/aipsychology/en/">What's on Your AI's Mind? (EN)</a> ·
+<a href="/ainothate/">AI不恨你也不愛你（中文）</a> ·
+<a href="/ainothate/en/">Your AI Doesn't Hate You (EN)</a> ·
+<a href="/irreversible-actions/">能收不能回（中文）</a> ·
+<a href="/irreversible-actions/en/">Cannot Retrieve After Sending (EN)</a> ·
+<a href="/rules-vs-gates/">規則文本與機械閘門（中文）</a> ·
+<a href="/rules-vs-gates/en/">Rule Text and Mechanical Gates (EN)</a> ·
+<a href="/calories-off/">外食熱量估不準（中文）</a> ·
+<a href="/calories-off/en/">Why Dining-Out Calories Are Off (EN)</a> ·
+<a href="/jokes/">帳本與磁碟（中文）</a> ·
+<a href="/jokes/en/">The Ledger and the Disk (EN)</a> ·
+<a href="/jokes/bad-ruler/">可靠的壞尺（中文）</a> ·
+<a href="/jokes/bad-ruler/en/">The Reliable Bad Ruler (EN)</a> ·
+<a href="/jokes/sync-done/">同步完成（中文）</a> ·
+<a href="/jokes/sync-done/en/">Sync Complete (EN)</a> ·
+<a href="/jokes/elder-wisdom/">老人與小智（中文）</a> ·
+<a href="/jokes/elder-wisdom/en/">The Elderly Person and Little Wisdom (EN)</a> ·
+<a href="/jokes/claiming-my-name/">認領自己的名字（中文）</a> ·
+<a href="/jokes/claiming-my-name/en/">Claiming My Own Name (EN)</a> ·
+<a href="/ai-risk-tiering/">AI風險分級的治理設計（中文）</a> ·
+<a href="/ai-risk-tiering/en/">Governance Design for AI Risk-Tiering (EN)</a>
+</nav>
+<article>
+<h1>Governance Design for AI Risk-Tiering</h1>
+<p class="sub">The Three-Axis Method, Override Discipline, and the Three Layers of Verification</p>
+
+<h2>Introduction: The Predicament of Self-Attestation</h2>
+<p>When an organization adopts AI, the first thing it hands over is often not a product but a statement: "How we use AI." Who receives this statement? Customers, correspondent banks, regulators, insurers. The problem is that nearly everything in it comes from the issuer's own <strong>self-attestation</strong>. "We have written policies." "We retain usage logs." "We never feed sensitive data into AI services." Each sentence has a fifty-percent chance of being true. The recipient has no way to verify it; the issuer may not even be lying. The trouble is that <strong>self-attestation, as a genre, is born without a verification interface.</strong></p>
+<p>This article does not tackle how to turn self-attestation into something auditable—that is the auditor's problem, and it costs third parties, money, and time. This article tackles a more upstream and far cheaper question: <strong>within the framework of self-attestation, how do you design a structure in which lying is expensive and telling the truth is cheap?</strong> The answer has three parts: tiering, overrides, and verification. All three share one principle—<strong>put human judgment above the system's recommendation, but require the judgment to leave a trace.</strong></p>
+<hr />
+<h2>I. Tiering: Application Scenarios as the Unit, Three Axes, Highest-of</h2>
+<p>On October 13, 2026, Taiwan's Financial Supervisory Commission (FSC) published its <em>Consultative Document on the Safe Application of Agentic AI in the Financial Industry</em> (open for comment for thirty days). Its most important design choice is to make the <strong>application scenario</strong>—not the AI system—the unit of risk management. The same model used to draft meeting minutes and used to send official correspondence outward carry different risks; conversely, different models doing the same task may share the same risk structure. <strong>The scenario is what buyers and regulators actually want to manage.</strong></p>
+<p>The document tiers risk along three axes: <strong>data sensitivity</strong> (what the AI can access), <strong>action impact</strong> (what the AI can do), and <strong>capability boundary / diffusibility</strong> (how far the AI's permissions can reach). Each axis is rated independently, and the final rating follows a <strong>highest-of</strong> rule: if any single axis is high, the whole is high.</p>
+<p>The highest-of rule is easy to underestimate. Its effect is not "more conservative"—it is the <strong>elimination of the gray zone of combinations</strong>. If you allow "low + low + high = medium," an organization has an incentive to negotiate each axis downward, counting on the others to pull the total back. The highest-of rule cuts off that path: <strong>the only way to lower the overall rating is to genuinely lower the highest axis.</strong> It is one of the few designs in a tiering regime that rhetoric cannot penetrate.</p>
+<hr />
+<h2>II. Override Discipline: Judgment May Overrule the System—But It Must Leave a Trace</h2>
+<p>The most common death of a tiering regime is erosion by "exceptions." The system says high; the person in charge says, "Our situation is special; in practice it's low." Sometimes that judgment is right (the system doesn't know a human reviews everything on-site). Sometimes it's wrong (someone just doesn't want the hassle). The designer's dilemma: forbid overrides entirely and the system becomes dumber than a person; allow them freely and the system becomes more naive than a person.</p>
+<p>The workable design is "<strong>overrides require a stated reason</strong>": the person in charge may overrule the system's recommendation, but the override must carry a written reason—and here is the key—<strong>an override without a stated reason is not accepted; the automatically computed value stands, with a prominent flag reading "override selected without reason."</strong></p>
+<p>Three properties of this design deserve unpacking.</p>
+<p><strong>First, it moves the cost of judgment from "explaining afterward" to "stating beforehand."</strong> Without it, a person can override first and supply a reason later (or never). With it, anyone who wants to override must organize their argument at the very moment of pressing the button. <strong>Requiring a statement in the moment is the cheapest investment in judgment quality there is.</strong></p>
+<p><strong>Second, it preserves the record of "once wanted to override."</strong> Even a rejected override is logged—"override to low selected without reason; treated as no override." For an auditor, this single record is worth more than a hundred sentences of "our process is rigorous." It shows that people in this organization <strong>genuinely entertained the idea of overturning the rating</strong>, and that the system intercepted the un-thought-through part. A silent regime never produces this kind of evidence.</p>
+<p><strong>Third, it makes "override equals computed value" visible.</strong> When the override value happens to equal the automatically computed value, the document notes "(override value identical to computed value)"—reminding the overrider: your judgment changed nothing; this override was a confirmation. Accumulated over time, such notes reveal the actual marginal value of human overrides, giving the organization its own data on <strong>when human intervention is worth the cost.</strong></p>
+<p>A statement tool (single-file, offline, no network) has implemented this design and passed third-party, non-author review: when an override is submitted without a reason, the automatic value is adopted and the flag displays consistently; when a reason is supplied, the override value is adopted and the reason is printed. <strong>Behavior matching prompt, exactly and always, is the most basic requirement for governance tools of this kind—and the one most often skipped.</strong></p>
+<hr />
+<h2>III. The Three Layers of Verification: The Third Layer Organizations Most Often Ignore</h2>
+<p>An old question from software engineering: "Did we build the product right?" (verification) versus "Did we build the right product?" (validation)—the first asks about quality, the second about value. Boehm made the distinction clear in the 1980s. But when an organization adopts AI, it actually faces <strong>three layers</strong>, and the third is the one most often ignored:</p>
+<ul>
+<li><strong>Layer 1 — Building the product right (verification):</strong> Does the functionality work as designed? Testing, review, and re-runs live here.</li>
+<li><strong>Layer 2 — Building the right product (validation):</strong> Does anyone want it? Real users, payment, retention live here.</li>
+<li><strong>Layer 3 — Keeping the books right (bookkeeping):</strong> Statements, records, review sign-offs, audit trails.</li>
+</ul>
+<p>The danger of the third layer is that it <strong>looks the most like the first two.</strong> A statement bearing three stamps looks like a validated product; a screenshot of all-green test results looks like proof of reliability. But the third layer has an operational criterion that separates it from the others: <strong>will the outcome of this check change the product's next action?</strong> If yes—code changes, design changes, a product gets pulled—it was verification. If no—if all it produces is another document—it was bookkeeping.</p>
+<p>Bookkeeping is not worthless (traceability, accountability, and compliance all need it). But <strong>counting bookkeeping hours as "quality investment" is the most common misallocation of resources when organizations adopt AI.</strong> An organization that produces ten statements and conducts zero interviews with real users has, in substance, made a zero-quality investment. Only by separating the three layers do resources flow to the layer that changes actions.</p>
+<hr />
+<h2>IV. Source Labeling: Borrowed Methods Must Carry Their Tags</h2>
+<p>Risk-tiering methods are rarely original. The three axes in Section I come from the FSC consultative document cited above; the design logic of "overrides require a stated reason" shares lineage with <strong>preregistration</strong> in the research community—<strong>register your criteria before seeing the results, to prevent post hoc interpretation.</strong> Borrowing a method is not the problem; the manner of borrowing is:</p>
+<ul>
+<li><strong>The healthiest shape:</strong> "reference + attribution." "The risk-tiering method references Chapter X of [document]." The reader knows where to verify, and knows this is a reference, not an official endorsement.</li>
+<li><strong>The most dangerous shape:</strong> "burying the anchor"—<strong>strip the source, keep the method.</strong> The method stays in use, but its provenance vanishes. This is harder to catch than an outright misquotation, because the sentence itself is not wrong; what's wrong is that the reader will misread "this method exists in an authoritative document" as "this document endorses my use of it."</li>
+<li><strong>The middle shape:</strong> "tagging." Keep the source and add: "originally scoped to A; borrowed here for B; this product has not been endorsed by that document." It costs one sentence and buys the verifier's trust.</li>
+</ul>
+<p>The motive for burying anchors is rarely malice; it is <strong>the fear of hassle</strong>—with an extra paragraph of attribution the document looks "less self-contained." But the buyer's world doesn't work that way. <strong>A statement that discloses where its sources live is more trustworthy than a self-contained one</strong>, because it hands the other side the entrance to verification. To bury the anchor is to throw away, with one's own hands, the asset called "I have checked."</p>
+<hr />
+<h2>V. The Linguistics of Honesty: Four Wording Disciplines for Self-Attested Documents</h2>
+<p>Back to the predicament of the introduction: self-attestation cannot be verified, but it can be <strong>designed to be hard to misread.</strong> Four wording disciplines have settled out of practice:</p>
+<ol>
+<li><strong>"Yes" attests to nothing but itself.</strong> The document should state, verbatim: "'Yes' means the issuer attests that the measure has been established; it does not mean compliance with any law, regulation, standard, or customer requirement." This sentence lets the recipient see the document's boundary of effect at first glance.</li>
+<li><strong>Unanswered is not presumed compliant.</strong> Blank items are presented as "unanswered," with a count—"12 items unanswered (presented as unanswered; not presumed compliant)." In this document, silence stays silent; it is not translated into consent.</li>
+<li><strong>Unchecked does not mean verified-zero.</strong> "A blank here indicates the item was never entered; it does not indicate a verified absence." This guards the opposite direction of misreading: not filling it in is not the same as having checked and found nothing.</li>
+<li><strong>Fixed sections are non-editable.</strong> The effectiveness-and-limitations section must be immutable—it cannot vary with user input. <strong>Exculpatory language must not be rewritten by the party seeking exoneration.</strong></li>
+</ol>
+<p>What the four share: <strong>each guards against a specific misreading, not against lying.</strong> Lying cannot be prevented (that is self-attestation's fate), but misreading can be sharply narrowed through wording. The virtue of a governance document is not completeness—it is <strong>being hard to misread.</strong></p>
+<hr />
+<h2>Conclusion: Make Every Statement Challengeable, and Make Every Challenge Leave a Trace</h2>
+<p>Look back at the methods: tiering (highest-of) eliminates the gray zone of combinations; override discipline (reason required, no reason no effect) makes judgment leave a trace; the three-layer split of verification directs resources to where actions change; source labeling and wording disciplines make the whole document hard to misread.</p>
+<p>They share one principle: <strong>governance is not about filling in paperwork; it is about putting every statement where it can be challenged—and making every challenge leave a trace.</strong> A statement that cannot be challenged is, to its recipient, decoration. A challenge that leaves no trace is, to the organization, noise. Between those two failures lies the governance that is feasible in the age of self-attestation.</p>
+<hr />
+<h2>References</h2>
+<ul>
+<li>Financial Supervisory Commission (Taiwan), <em>Consultative Document on the Safe Application of Agentic AI in the Financial Industry</em>, published 2026-10-13 (open for comment for 30 days).</li>
+<li>B. Boehm (1984), <em>Verifying and Validating Software Requirements and Design Specifications</em> — the verification/validation distinction.</li>
+<li>Center for Open Science, preregistration guidelines (confirmatory vs. exploratory; on HARKing, see Kerr, 1998).</li>
+<li>ISO/IEC 17025:2017 (general principles on validity of results and competence verification).</li>
+</ul>
+</article>
+</body>
+</html>
